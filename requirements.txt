@@ -1,2 +1,10 @@
 polars==1.6.0
 kagglehub==0.3.13
+pyarrow==23.0.1
+joblib==1.5.3
+numpy==2.4.4
+pandas==3.0.2
+scikit-learn==1.8.0
+scipy==1.17.1
+matplotlib==3.10.8
+networkx==3.6.1

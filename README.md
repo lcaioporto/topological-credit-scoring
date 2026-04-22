@@ -6,7 +6,7 @@ This repository contains the source code for a research project that explores th
 
 To configure your environment to run this project, you must initially clone this repository:
 ```
-git clone https://github.com/lcaioporto/dynamic-credit.git
+git clone https://github.com/lcaioporto/topological-credit-scoring.git
 ```
 
 Then, ensure you have the python version specified in `python-version.txt`, and download the project dependencies:

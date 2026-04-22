@@ -107,7 +107,7 @@ class Utils():
         num_nodes = sparse_matrix.shape[0]
         num_edges = sparse_matrix.nnz
         
-        # Requirement 2: Size and Average Degree
+        # Size and Average Degree
         # In a directed graph, average degree = |E| / |V|
         avg_degree = num_edges / num_nodes
         
@@ -116,7 +116,7 @@ class Utils():
         print(f"Number of Edges: {num_edges}")
         print(f"Average Degree: {avg_degree:.2f}")
         
-        # Requirement 3: Degree Distribution (In-Degree)
+        # Degree Distribution (In-Degree)
         # Summing columns gives the in-degree (how many times a node was chosen as a nearest neighbor)
         in_degrees = np.array(sparse_matrix.sum(axis=0)).flatten()
         
@@ -128,12 +128,12 @@ class Utils():
         plt.grid(axis='y', alpha=0.75)
         plt.show()
         
-        # Requirement 4: Number of Strongly Connected Components
+        # Number of Strongly Connected Components
         # connection='strong' is used because the K-NN graph is directed
         num_components, component_labels = connected_components(csgraph=sparse_matrix, directed=True, connection='strong')
         print(f"\nNumber of Strongly Connected Components: {num_components}")
         
-        # Requirement 5: Component Size Distribution
+        # Component Size Distribution
         if num_components > 1:
             # Count how many nodes are in each component
             unique_labels, counts = np.unique(component_labels, return_counts=True)

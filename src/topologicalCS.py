@@ -53,9 +53,9 @@ INPUT_PATH = '../data/LCData_accptd-processed.parquet'
 TERM60: bool = 0                          # Selects the contract length of the observations considered in the experiment. Could be either 36 (TERM60 = 0) or 60 (TERM60 = 1)
 DEFAULTER_HARM_FACTOR = 1                 # Includes a multiplier to the prejudice caused by defaulters
 START_DATE = pd.to_datetime('2012-09-01')
-LAST_VALIDATION_DATE = pd.to_datetime('2015-08-01')
-FIRST_TEST_DATE = pd.to_datetime('2015-09-01')
-FINAL_DATE = pd.to_datetime('2016-03-01')
+LAST_VALIDATION_DATE = pd.to_datetime('2014-08-01')
+FIRST_TEST_DATE = pd.to_datetime('2014-09-01')
+FINAL_DATE = pd.to_datetime('2015-03-01')
 
 class topologicalCS():
     def __init__(

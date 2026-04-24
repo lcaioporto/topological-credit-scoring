@@ -42,7 +42,9 @@ class Utils():
             f for f in num_feats 
             if f not in event_time_feats and f not in history_time_feats
         ]
-
+        event_time_feats = [f for f in event_time_feats if f in num_feats]
+        history_time_feats = [f for f in history_time_feats if f in num_feats]
+        
         # Fill with a relatively high value to indicate "Never Happened"
         def custom_max_imputer(arr):
             return np.max(arr)*1.5

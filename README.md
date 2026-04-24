@@ -34,3 +34,10 @@ Then, run the preprocessing script to get the final data to be used on the exper
 ```
 python Preprocess/prep.py
 ```
+
+## Running the experiement
+
+After configuring the repository environment, you can execute the experiment to generate the financial graph by running:
+```
+python src/topologicalCS.py
+```

@@ -160,8 +160,25 @@ class topologicalCS():
         '''
         self.presetting_data()
         numeric_features, ohe_cat_feats, te_cat_feats, binary_features = self.parsing_data()
-        selected_features = ['loan_amnt', 'int_rate', 'annual_inc', 'dti', 'revol_util']
-        builder = FinancialGraphBuilder(df=self.data, feature_cols=selected_features)
+        selected_features = [
+            'loan_amnt', 'annual_inc', 'dti', 'revol_util', 'fico_range_low', 'fico_range_high',
+            'acc_open_past_24mths', 'inq_last_6mths', 'avg_cur_bal', 'percent_bc_gt_75',
+            'mo_sin_old_rev_tl_op'
+        ]
+
+        graph_preprocessor = Utils.set_preprocessor_pipeline(
+            num_feats=selected_features, 
+            ohe_cat_feats=[], 
+            te_cat_feats=[], 
+            bin_feats=[]
+        )
+
+        builder = FinancialGraphBuilder(
+            df=self.data,
+            feature_cols=selected_features,
+            preprocessor=graph_preprocessor
+        )
+
         adj_matrix = builder.build_knn_graph(k=10, metric='euclidean')
         Utils.analyze_and_plot_topology(adj_matrix)
         Utils.export_to_graphml(adj_matrix, "lending_club_knn.graphml")

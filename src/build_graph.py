@@ -5,6 +5,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.neighbors import kneighbors_graph
 import scipy.sparse as sparse
 import logging
+from sklearn.compose import ColumnTransformer
 
 # Configure basic logging for tracking the pipeline execution
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -15,7 +16,7 @@ class FinancialGraphBuilder:
     Handles data normalization and memory-efficient sparse matrix generation.
     """
     
-    def __init__(self, df: pd.DataFrame, feature_cols: list):
+    def __init__(self, df: pd.DataFrame, feature_cols: list, preprocessor: ColumnTransformer = None):
         """
         Initializes the graph builder.
         
@@ -25,29 +26,30 @@ class FinancialGraphBuilder:
         """
         self.df = df.copy()
         self.feature_cols = feature_cols
-        self.features_matrix = self.df[self.feature_cols].values
+        self.preprocessor = preprocessor
+        self.features_df = self.df[self.feature_cols]
+        self.features_matrix = None
         self.adjacency_matrix = None
         
-        logging.info(f"Initialized GraphBuilder with {self.features_matrix.shape[0]} nodes and {self.features_matrix.shape[1]} features.")
-
-    def _normalize_features(self):
-        """
-        Imputes missing values using the mean, then applies Standard Scaling 
-        (Z-score normalization) to the features. This mirrors the numeric 
-        preprocessing pipeline used for the ML models.
-        """
-        # Impute missing values (NaNs) with the mean of each column
-        logging.info("Imputing missing values with column means...")
-        imputer = SimpleImputer(strategy='mean')
-        self.features_matrix = imputer.fit_transform(self.features_matrix)
-        
-        # Apply Standard Scaling
-        logging.info("Normalizing features using StandardScaler...")
-        scaler = StandardScaler()
-        self.features_matrix = scaler.fit_transform(self.features_matrix)
-        
-        logging.info("Imputation and Normalization complete.")
+        logging.info(f"Initialized GraphBuilder with {self.features_df.shape[0]} nodes and {self.features_df.shape[1]} features.")
     
+    def _apply_preprocessing(self):
+        """
+        Applies the provided preprocessing pipeline to handle imputation 
+        (e.g., 'Never Happened' and 'No History') and Standard Scaling.
+        """
+        if self.preprocessor is None:
+            raise ValueError("A ColumnTransformer preprocessor must be provided to handle imputations.")
+            
+        logging.info("Applying custom preprocessing pipeline to graph features...")
+        
+        try:
+            self.features_matrix = self.preprocessor.fit_transform(self.features_df)
+        except Exception as e:
+            logging.error(f"Failed to apply the preprocessing pipeline: {e}")
+            raise
+        logging.info(f"Preprocessing complete. Final feature matrix shape: {self.features_matrix.shape}")
+
     def build_knn_graph(self, k: int = 5, metric: str = 'euclidean', n_jobs: int = -1):
         """
         Constructs the K-NN graph.
@@ -61,7 +63,7 @@ class FinancialGraphBuilder:
             scipy.sparse.csr_matrix: Sparse adjacency matrix representing the graph.
         """
         # Always normalize before calculating distances
-        self._normalize_features()
+        self._apply_preprocessing()
         
         logging.info(f"Building K-NN graph using k={k} and metric='{metric}'. This may take a moment...")
         

@@ -1,0 +1,4 @@
+- Number of Vertices (Nodes): 154567
+- Number of Edges: 1545670
+- Average Degree: 10.00
+- Number of Strongly Connected Components: 892

@@ -68,9 +68,9 @@ INPUT_PATH = '../data/LCData_accptd-processed.parquet'
 TERM60: bool = 0                          # Selects the contract length of the observations considered in the experiment. Could be either 36 (TERM60 = 0) or 60 (TERM60 = 1)
 DEFAULTER_HARM_FACTOR = 1                 # Includes a multiplier to the prejudice caused by defaulters
 START_DATE = pd.to_datetime('2012-09-01')
-LAST_VALIDATION_DATE = pd.to_datetime('2014-08-01')
-FIRST_TEST_DATE = pd.to_datetime('2014-09-01')
-FINAL_DATE = pd.to_datetime('2015-03-01')
+LAST_VALIDATION_DATE = pd.to_datetime('2013-09-01')
+FIRST_TEST_DATE = pd.to_datetime('2013-09-01')
+FINAL_DATE = pd.to_datetime('2014-03-01')
 
 class topologicalCS():
     def __init__(
@@ -141,6 +141,8 @@ class topologicalCS():
 
         self.data = self.data[(self.data['issue_d'] >= START_DATE) & (self.data['issue_d'] <= FINAL_DATE)]
 
+        print(len(self.data))
+
     def parsing_data(self):
         '''
         Based on predefined criterias, this function parses the data into numeric, binary,
@@ -198,8 +200,8 @@ class topologicalCS():
         )
 
         adj_matrix = builder.build_knn_graph(k=self.k, metric=self.metric)
-        Utils.analyze_and_plot_topology(adj_matrix)
-        Utils.export_to_graphml(adj_matrix, "lending_club_knn.graphml")
+        Utils.analyze_and_plot_topology(adj_matrix, save_dir='results', prefix=f'k{self.k}_{self.metric}_')
+        Utils.export_to_graphml(adj_matrix, save_dir='results', filename=f"k{self.k}_{self.metric}_lending_club_knn.graphml")
 
 if __name__ == "__main__":
     # Initialize the time counter

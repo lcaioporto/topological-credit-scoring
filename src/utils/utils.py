@@ -10,6 +10,7 @@ import numpy as np
 import scipy.sparse as sparse
 from scipy.sparse.csgraph import connected_components
 import matplotlib.pyplot as plt
+import os
 
 class Utils():
     @staticmethod
@@ -92,64 +93,85 @@ class Utils():
         return preprocessor
 
     @staticmethod
-    def export_to_graphml(sparse_matrix, filename: str):
+    def export_to_graphml(sparse_matrix, save_dir: str, filename: str):
         """
         Exports the sparse matrix to GraphML format.
         """
+        os.makedirs(save_dir, exist_ok=True)
+
         print(f"Converting sparse matrix to NetworkX graph...")
         # Convert sparse matrix to a directed NetworkX graph
         G = nx.from_scipy_sparse_array(sparse_matrix, create_using=nx.DiGraph)
         
-        print(f"Exporting to {filename}... (This might take a while for large graphs)")
-        nx.write_graphml(G, filename)
+        filepath = os.path.join(save_dir, filename)
+        print(f"Exporting to {filepath}... (This might take a while for large graphs)")
+        nx.write_graphml(G, filepath)
         print("Export complete.")
 
     @staticmethod
-    def analyze_and_plot_topology(sparse_matrix):
+    def analyze_and_plot_topology(sparse_matrix, save_dir="plots", prefix=""):
+        """
+        Analyzes the topology of the sparse matrix and saves the plots to disk.
+        
+        Args:
+            sparse_matrix: The scipy.sparse matrix representing the graph.
+            save_dir (str): The folder path where the images will be saved.
+            prefix (str): A string to prepend to the filename (e.g., 'k10_euclidean_').
+        """
+        # Create the directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+        
         num_nodes = sparse_matrix.shape[0]
         num_edges = sparse_matrix.nnz
         
         # Size and Average Degree
-        # In a directed graph, average degree = |E| / |V|
         avg_degree = num_edges / num_nodes
         
-        print("=== Graph Size Metrics ===")
+        print(f"\n=== Graph Size Metrics ({prefix.strip('_')}) ===")
         print(f"Number of Vertices (Nodes): {num_nodes}")
         print(f"Number of Edges: {num_edges}")
         print(f"Average Degree: {avg_degree:.2f}")
         
         # Degree Distribution (In-Degree)
-        # Summing columns gives the in-degree (how many times a node was chosen as a nearest neighbor)
         in_degrees = np.array(sparse_matrix.sum(axis=0)).flatten()
         
         plt.figure(figsize=(10, 5))
         plt.hist(in_degrees, bins=range(int(max(in_degrees)) + 2), edgecolor='black', alpha=0.7)
-        plt.title("In-Degree Distribution")
+        
+        # Add prefix to title for better identification if you review them later
+        title_suffix = f" ({prefix.strip('_')})" if prefix else ""
+        plt.title(f"In-Degree Distribution{title_suffix}")
+        
         plt.xlabel("In-Degree (Number of times chosen as a neighbor)")
         plt.ylabel("Frequency (Number of Nodes)")
         plt.grid(axis='y', alpha=0.75)
-        plt.show()
+        
+        # Save the plot instead of showing it
+        indegree_filename = os.path.join(save_dir, f"{prefix}indegree_distribution.png")
+        plt.savefig(indegree_filename, bbox_inches='tight')
+        print(f"Saved: {indegree_filename}")
+        plt.close()
         
         # Number of Strongly Connected Components
-        # connection='strong' is used because the K-NN graph is directed
         num_components, component_labels = connected_components(csgraph=sparse_matrix, directed=True, connection='strong')
-        print(f"\nNumber of Strongly Connected Components: {num_components}")
+        print(f"Number of Strongly Connected Components: {num_components}")
         
         # Component Size Distribution
         if num_components > 1:
-            # Count how many nodes are in each component
             unique_labels, counts = np.unique(component_labels, return_counts=True)
-            
-            # Now count how many components have size 'k'
             size_frequencies = pd.Series(counts).value_counts().sort_index()
             
             plt.figure(figsize=(10, 5))
-            # Log scale is often necessary because there is usually one giant component and many tiny ones
             plt.scatter(size_frequencies.index, size_frequencies.values, color='red')
             plt.xscale('log')
             plt.yscale('log')
-            plt.title("Component Size Distribution (Log-Log Scale)")
+            plt.title(f"Component Size Distribution (Log-Log Scale){title_suffix}")
             plt.xlabel("Component Size (Number of Vertices k)")
             plt.ylabel("Frequency (Number of Components with size k)")
             plt.grid(True, which="both", ls="--", alpha=0.5)
-            plt.show()
+            
+            # Save the plot
+            components_filename = os.path.join(save_dir, f"{prefix}component_size_distribution.png")
+            plt.savefig(components_filename, bbox_inches='tight')
+            print(f"Saved: {components_filename}")
+            plt.close()

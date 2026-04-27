@@ -41,4 +41,8 @@ After configuring the repository environment, you can execute the experiment to 
 ```
 python src/topologicalCS.py --k 10 --metric euclidean
 ```
-Note that you can specify the value of $K$ and the metric used to calculate distances to build the graph. For instace, we tested with $K: \{5, 10, 30\}$ and $metric: \{euclidean, manhattan, cosine\}$.
+Note that you can specify the value of $K$ and the metric used to calculate distances to build the graph. For instace, we tested with $K: \{5, 10, 20\}$ and $metric: \{euclidean, manhattan, cosine\}$.
+
+## Partial results
+
+The `results/` folder contains the generated graphs testing all the 9 combinations of the values mentioned above, as well as their basic statistics, component size distribution and in-degree distribution. We needed to save the larger files using `Git LFS`.

@@ -39,5 +39,6 @@ python Preprocess/prep.py
 
 After configuring the repository environment, you can execute the experiment to generate the financial graph by running:
 ```
-python src/topologicalCS.py
+python src/topologicalCS.py --k 10 --metric euclidean
 ```
+Note that you can specify the value of $K$ and the metric used to calculate distances to build the graph. For instace, we tested with $K: \{5, 10, 30\}$ and $metric: \{euclidean, manhattan, cosine\}$.

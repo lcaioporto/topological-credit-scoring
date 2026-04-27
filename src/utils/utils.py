@@ -7,7 +7,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.feature_selection import VarianceThreshold
 import networkx as nx
 import numpy as np
-import scipy.sparse as sparse
+import scipy.sparse as sp
 from scipy.sparse.csgraph import connected_components
 import matplotlib.pyplot as plt
 import os
@@ -175,3 +175,39 @@ class Utils():
             plt.savefig(components_filename, bbox_inches='tight')
             print(f"Saved: {components_filename}")
             plt.close()
+    
+    @staticmethod
+    def export_graph_stats_to_md(adj_matrix, save_dir: str, prefix: str):
+        """
+        Calculates main graph statistics and exports them to a markdown file.
+        """
+        os.makedirs(save_dir, exist_ok=True)
+        filename = f"{prefix}graph_stats.md"
+        filepath = os.path.join(save_dir, filename)
+
+        # Ensure we are working with a scipy sparse matrix for efficient calculation
+        if not sp.issparse(adj_matrix):
+            adj_matrix = sp.csr_matrix(adj_matrix)
+
+        # Calculate metrics
+        num_vertices = adj_matrix.shape[0]
+        num_edges = adj_matrix.nnz
+        average_degree = num_edges / num_vertices if num_vertices > 0 else 0.0
+
+        # Calculate strongly connected components
+        # connection='strong' calculates SCCs for directed graphs (like k-NN)
+        n_components, _ = connected_components(csgraph=adj_matrix, directed=True, connection='strong')
+
+        # Build the markdown content
+        md_content = (
+            f"- Number of Vertices (Nodes): {num_vertices}\n"
+            f"- Number of Edges: {num_edges}\n"
+            f"- Average Degree: {average_degree:.2f}\n"
+            f"- Number of Strongly Connected Components: {n_components}\n"
+        )
+
+        # Write to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+
+        print(f"Graph stats successfully saved to {filepath}")

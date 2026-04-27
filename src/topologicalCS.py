@@ -202,6 +202,7 @@ class topologicalCS():
         adj_matrix = builder.build_knn_graph(k=self.k, metric=self.metric)
         Utils.analyze_and_plot_topology(adj_matrix, save_dir='results', prefix=f'k{self.k}_{self.metric}_')
         Utils.export_to_graphml(adj_matrix, save_dir='results', filename=f"k{self.k}_{self.metric}_lending_club_knn.graphml")
+        Utils.export_graph_stats_to_md(adj_matrix, save_dir='results', prefix=f'k{self.k}_{self.metric}_')
 
 if __name__ == "__main__":
     # Initialize the time counter

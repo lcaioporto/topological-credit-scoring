@@ -18,6 +18,19 @@ parser.add_argument(
     help="If passed, only a small part of the data will be used. Useful for fast testing."
 )
 
+parser.add_argument(
+    '--k',
+    type=int,
+    default=10,
+    help="Number of nearest neighbors for the k-NN graph."
+)
+parser.add_argument(
+    '--metric',
+    type=str,
+    default='euclidean',
+    help="Distance metric to use for the k-NN graph (e.g., 'euclidean', 'cosine', 'manhattan')."
+)
+
 TRAIN_TEST_COLUMNS = [
     'acc_now_delinq', 'acc_open_past_24mths',
     'annual_inc', 'avg_cur_bal',
@@ -43,6 +56,8 @@ TRAIN_TEST_COLUMNS = [
 
 args = parser.parse_args()
 SAMPLE = args.sample
+K_NEIGHBORS = args.k
+DISTANCE_METRIC = args.metric
 
 if SAMPLE: print("Using only 1% of the original data.")
 
@@ -59,13 +74,16 @@ FINAL_DATE = pd.to_datetime('2015-03-01')
 
 class topologicalCS():
     def __init__(
-            self, input_path: str = INPUT_PATH, models: list = MODELS, sample: bool = SAMPLE, term60: bool = TERM60
+            self, input_path: str = INPUT_PATH, models: list = MODELS, sample: bool = SAMPLE, term60: bool = TERM60,
+            k: int = K_NEIGHBORS, metric: str = DISTANCE_METRIC
         ):
         self.models: list = models
         self.input_path: str = input_path
         self.sample: bool = sample
         self.term60: bool = term60
         self.data: pd.DataFrame = None
+        self.k: int = k
+        self.metric: str = metric
 
     def presetting_data(self):
         '''
@@ -179,7 +197,7 @@ class topologicalCS():
             preprocessor=graph_preprocessor
         )
 
-        adj_matrix = builder.build_knn_graph(k=10, metric='euclidean')
+        adj_matrix = builder.build_knn_graph(k=self.k, metric=self.metric)
         Utils.analyze_and_plot_topology(adj_matrix)
         Utils.export_to_graphml(adj_matrix, "lending_club_knn.graphml")
 

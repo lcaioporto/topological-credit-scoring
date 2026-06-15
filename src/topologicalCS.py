@@ -69,7 +69,7 @@ TERM60: bool = 0                          # Selects the contract length of the o
 DEFAULTER_HARM_FACTOR = 1                 # Includes a multiplier to the prejudice caused by defaulters
 START_DATE = pd.to_datetime('2012-09-01')
 LAST_VALIDATION_DATE = pd.to_datetime('2013-09-01')
-FIRST_TEST_DATE = pd.to_datetime('2013-09-01')
+FIRST_TEST_DATE = pd.to_datetime('2013-10-01')
 FINAL_DATE = pd.to_datetime('2014-03-01')
 
 class topologicalCS():

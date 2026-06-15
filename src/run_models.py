@@ -7,9 +7,10 @@ from collections import Counter
 import random
 
 from sklearn.linear_model import LogisticRegressionCV
+from xgboost import XGBClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, classification_report
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, RandomizedSearchCV
 from scipy.stats import ks_2samp
 import scipy.sparse
 from scipy.sparse import issparse, hstack
@@ -179,11 +180,10 @@ class ModelTrainer:
         profits_train = self.df_train['sim_profit']
         profits_test = self.df_test['sim_profit']
         
-        # Processamento Tabular
+        # Processamento
         X_train_tab = preprocessor.fit_transform(self.df_train, y_train)
         X_test_tab = preprocessor.transform(self.df_test)
         
-        # Processamento Topológico
         topo_cols = ['in_degree', 'pagerank', 'clustering_coeff', 'neighborhood_risk', 'community_risk']
         topo_scaler = StandardScaler()
         X_train_topo = topo_scaler.fit_transform(self.df_train[topo_cols])
@@ -196,8 +196,8 @@ class ModelTrainer:
             X_train_hybrid = np.hstack((X_train_tab, X_train_topo))
             X_test_hybrid = np.hstack((X_test_tab, X_test_topo))
         
-        logging.info("Configurando LogisticRegressionCV para Tuning Automático...")
-        # Cs=10 testa 10 valores diferentes de regularização
+        # Setup dos modelos e tuning
+        # Regressão Logística com ElasticNet
         lr_cv_params = {
             "Cs": 10, 
             "cv": 3,  # CV Interno para achar o melhor parâmetro
@@ -206,72 +206,90 @@ class ModelTrainer:
             "random_state": 42,
             "n_jobs": -1
         }
-        
         lr_baseline = LogisticRegressionCV(**lr_cv_params)
         lr_hybrid = LogisticRegressionCV(**lr_cv_params)
         
-        # Definição dos thresholds
-        logging.info("Calculando predições out-of-fold no treino para otimização de limiares...")
+        # XGBoost com RandomizedSearchCV
+        xgb_base = XGBClassifier(random_state=42, eval_metric='logloss', n_jobs=-1)
+        xgb_params_grid = {
+            'n_estimators': [100, 200, 300],
+            'max_depth': [3, 4, 5, 6],
+            'learning_rate': [0.01, 0.05, 0.1],
+            'subsample': [0.8, 1.0],
+            'colsample_bytree': [0.8, 1.0]
+        }
+        xgb_baseline = RandomizedSearchCV(xgb_base, xgb_params_grid, n_iter=10, cv=3, random_state=42, n_jobs=1)
+        xgb_hybrid = RandomizedSearchCV(xgb_base, xgb_params_grid, n_iter=10, cv=3, random_state=42, n_jobs=1)
+
+        # Cálculo de thresholds
+        logging.info("Calculando predições OOF no treino para LR...")
+        preds_train_lr_base = cross_val_predict(lr_baseline, X_train_tab, y_train, cv=5, method='predict_proba', n_jobs=-1)[:, 1]
+        preds_train_lr_hyb = cross_val_predict(lr_hybrid, X_train_hybrid, y_train, cv=5, method='predict_proba', n_jobs=-1)[:, 1]
         
-        # cross_val_predict garante que o threshold seja calculado sobre probabilidades não-viesadas
-        preds_train_baseline = cross_val_predict(lr_baseline, X_train_tab, y_train, cv=5, method='predict_proba', n_jobs=-1)[:, 1]
-        preds_train_hybrid = cross_val_predict(lr_hybrid, X_train_hybrid, y_train, cv=5, method='predict_proba', n_jobs=-1)[:, 1]
+        logging.info("Calculando predições OOF no treino para XGBoost...")
+        preds_train_xgb_base = cross_val_predict(xgb_baseline, X_train_tab, y_train, cv=5, method='predict_proba', n_jobs=1)[:, 1]
+        preds_train_xgb_hyb = cross_val_predict(xgb_hybrid, X_train_hybrid, y_train, cv=5, method='predict_proba', n_jobs=1)[:, 1]
         
-        t_opt_baseline = self._find_optimal_static_threshold(preds_train_baseline, profits_train)
-        t_opt_hybrid = self._find_optimal_static_threshold(preds_train_hybrid, profits_train)
-        
-        logging.info(f"Threshold Estático Ótimo (Baseline): {t_opt_baseline:.4f}")
-        logging.info(f"Threshold Estático Ótimo (Híbrido): {t_opt_hybrid:.4f}")
+        t_opt_lr_base = self._find_optimal_static_threshold(preds_train_lr_base, profits_train)
+        t_opt_lr_hyb = self._find_optimal_static_threshold(preds_train_lr_hyb, profits_train)
+        t_opt_xgb_base = self._find_optimal_static_threshold(preds_train_xgb_base, profits_train)
+        t_opt_xgb_hyb = self._find_optimal_static_threshold(preds_train_xgb_hyb, profits_train)
         
         # Treinamento final
-        logging.info("Treinando modelos finais com todo o dado de treino...")
+        logging.info("Treinando modelos finais completos...")
         lr_baseline.fit(X_train_tab, y_train)
         lr_hybrid.fit(X_train_hybrid, y_train)
+        xgb_baseline.fit(X_train_tab, y_train)
+        xgb_hybrid.fit(X_train_hybrid, y_train)
         
-        preds_test_baseline = lr_baseline.predict_proba(X_test_tab)[:, 1]
-        preds_test_hybrid = lr_hybrid.predict_proba(X_test_hybrid)[:, 1]
+        preds_test_lr_base = lr_baseline.predict_proba(X_test_tab)[:, 1]
+        preds_test_lr_hyb = lr_hybrid.predict_proba(X_test_hybrid)[:, 1]
+        preds_test_xgb_base = xgb_baseline.predict_proba(X_test_tab)[:, 1]
+        preds_test_xgb_hyb = xgb_hybrid.predict_proba(X_test_hybrid)[:, 1]
         
-        # Risco global do treino para o threshold dinâmico
         global_risk = y_train.mean()
-        
-        # Construção dos arrays de Threshold Dinâmico para o conjunto de Teste
-        # O parâmetro alpha controla o "peso" da penalização topológica
         alpha_peso = 1.0 
-        dyn_t_baseline = self._calculate_dynamic_thresholds(t_opt_baseline, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
-        dyn_t_hybrid = self._calculate_dynamic_thresholds(t_opt_hybrid, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
         
-        # Avaliação dos 4 cenários no teste
-        logging.info("Iniciando avaliação dos cenários de negócios...")
+        dyn_t_lr_base = self._calculate_dynamic_thresholds(t_opt_lr_base, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
+        dyn_t_lr_hyb = self._calculate_dynamic_thresholds(t_opt_lr_hyb, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
+        dyn_t_xgb_base = self._calculate_dynamic_thresholds(t_opt_xgb_base, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
+        dyn_t_xgb_hyb = self._calculate_dynamic_thresholds(t_opt_xgb_hyb, self.df_test['community_risk'], global_risk, alpha=alpha_peso)
         
-        self._evaluate_business_scenario("1. Modelo Normal + Threshold Normal", 
-                                         y_test, preds_test_baseline, t_opt_baseline, profits_test)
-                                         
-        self._evaluate_business_scenario("2. Modelo Normal + Threshold Grafo", 
-                                         y_test, preds_test_baseline, dyn_t_baseline, profits_test)
-                                         
-        self._evaluate_business_scenario("3. Modelo Híbrido + Threshold Normal", 
-                                         y_test, preds_test_hybrid, t_opt_hybrid, profits_test)
-                                         
-        self._evaluate_business_scenario("4. Modelo Híbrido + Threshold Grafo", 
-                                         y_test, preds_test_hybrid, dyn_t_hybrid, profits_test)
+        # Avaliação dos modelos
+        logging.info("Iniciando avaliação dos cenários de business...")
         
+        # Cenários LR
+        self._evaluate_business_scenario("1. LR Normal + Threshold Normal", y_test, preds_test_lr_base, t_opt_lr_base, profits_test)
+        self._evaluate_business_scenario("2. LR Normal + Threshold Dinâmico", y_test, preds_test_lr_base, dyn_t_lr_base, profits_test)
+        self._evaluate_business_scenario("3. LR Híbrido + Threshold Normal", y_test, preds_test_lr_hyb, t_opt_lr_hyb, profits_test)
+        self._evaluate_business_scenario("4. LR Híbrido + Threshold Dinâmico", y_test, preds_test_lr_hyb, dyn_t_lr_hyb, profits_test)
+        
+        # Cenários XGBoost
+        self._evaluate_business_scenario("5. XGB Normal + Threshold Normal", y_test, preds_test_xgb_base, t_opt_xgb_base, profits_test)
+        self._evaluate_business_scenario("6. XGB Normal + Threshold Dinâmico", y_test, preds_test_xgb_base, dyn_t_xgb_base, profits_test)
+        self._evaluate_business_scenario("7. XGB Híbrido + Threshold Normal", y_test, preds_test_xgb_hyb, t_opt_xgb_hyb, profits_test)
+        self._evaluate_business_scenario("8. XGB Híbrido + Threshold Dinâmico", y_test, preds_test_xgb_hyb, dyn_t_xgb_hyb, profits_test)
+        
+        # SHAP (explicabilidade dos modelos híbridos)
         logging.info("Iniciando geração dos relatórios de explicabilidade...")
         
         try:
             tab_feature_names = preprocessor.get_feature_names_out()
         except Exception:
-            logging.warning("Não foi possível extrair nomes do preprocessor. Usando índices genéricos.")
             tab_feature_names = [f"Feature_{i}" for i in range(X_train_tab.shape[1])]
         
         all_hybrid_features = list(tab_feature_names) + topo_cols
         
-        # Chama a função passando Treino e Teste
+        # Explicabilidade Híbrida - Regressão Logística
         self._plot_shap_explanations(
-            model=lr_hybrid, 
-            X_train=X_train_hybrid, 
-            X_test=X_test_hybrid, 
-            feature_names=all_hybrid_features, 
-            filename="shap_summary_hybrid.png"
+            model=lr_hybrid, X_train=X_train_hybrid, X_test=X_test_hybrid, 
+            feature_names=all_hybrid_features, filename="shap_summary_lr_hybrid.png", model_type="linear"
+        )
+        
+        # Explicabilidade Híbrida - XGBoost
+        self._plot_shap_explanations(
+            model=xgb_hybrid, X_train=X_train_hybrid, X_test=X_test_hybrid, 
+            feature_names=all_hybrid_features, filename="shap_summary_xgb_hybrid.png", model_type="tree"
         )
 
     def _find_optimal_static_threshold(self, y_probs, profits):
@@ -330,15 +348,12 @@ class ModelTrainer:
         print(f"{'-'*55}")
         print(classification_report(y_true, y_pred_binary))
 
-    def _plot_shap_explanations(self, model, X_train, X_test, feature_names, filename="shap_summary.png"):
+    def _plot_shap_explanations(self, model, X_train, X_test, feature_names, filename="shap_summary.png", model_type="linear"):
         """
-        Gera o gráfico de explicabilidade do modelo usando SHAP LinearExplainer,
-        explicando as decisões no conjunto de teste com base no background de treino.
+        Gera o gráfico de explicabilidade. Suporta 'linear' (Regressão Logística) e 'tree' (XGBoost).
         """
+        logging.info(f"Preparando dados para o SHAP ({filename}) [{model_type}]...")
         
-        logging.info(f"Preparando dados para o SHAP ({filename})...")
-        
-        # Garantir formato denso para o SHAP
         if scipy.sparse.issparse(X_train):
             X_train_dense = X_train.toarray()
             X_test_dense = X_test.toarray()
@@ -346,16 +361,16 @@ class ModelTrainer:
             X_train_dense = X_train
             X_test_dense = X_test
             
-        # Cria um Masker que obriga o uso de todas as observações do treino 
-        masker = shap.maskers.Independent(X_train_dense, max_samples=X_train_dense.shape[0])
+        if model_type == "linear":
+            masker = shap.maskers.Independent(X_train_dense, max_samples=X_train_dense.shape[0])
+            explainer = shap.LinearExplainer(model, masker=masker)
+            shap_values = explainer.shap_values(X_test_dense)
+        elif model_type == "tree":
+            # Para o XGBoost encapsulado no RandomizedSearchCV, precisamos extrair o best_estimator_
+            best_model = model.best_estimator_ if hasattr(model, 'best_estimator_') else model
+            explainer = shap.TreeExplainer(best_model)
+            shap_values = explainer.shap_values(X_test_dense)
         
-        explainer = shap.LinearExplainer(model, masker=masker)
-        
-        # Calculamos o SHAP values sobre o teste
-        logging.info("Calculando o impacto real das features nas predições de teste...")
-        shap_values = explainer.shap_values(X_test_dense)
-        
-        # Plota o summary plot
         plt.figure(figsize=(12, 8))
         shap.summary_plot(shap_values, X_test_dense, feature_names=feature_names, show=False)
         plt.tight_layout()

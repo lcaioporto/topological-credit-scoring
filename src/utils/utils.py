@@ -118,7 +118,6 @@ class Utils():
             save_dir (str): The folder path where the images will be saved.
             prefix (str): A string to prepend to the filename (e.g., 'k10_euclidean_').
         """
-        # Create the directory if it doesn't exist
         os.makedirs(save_dir, exist_ok=True)
         
         num_nodes = sparse_matrix.shape[0]
@@ -138,7 +137,6 @@ class Utils():
         plt.figure(figsize=(10, 5))
         plt.hist(in_degrees, bins=range(int(max(in_degrees)) + 2), edgecolor='black', alpha=0.7)
         
-        # Add prefix to title for better identification if you review them later
         title_suffix = f" ({prefix.strip('_')})" if prefix else ""
         plt.title(f"In-Degree Distribution{title_suffix}")
         

@@ -122,7 +122,6 @@ class FinancialGraphBuilder:
 
 
 if __name__ == "__main__":
-    # Mocking the filtered DataFrame (replace with your START_DATE/FINAL_DATE filtered df)
     # Using dummy data to simulate Lending Club features
     mock_data = {
         'loan_amnt': np.random.uniform(1000, 40000, 5000),

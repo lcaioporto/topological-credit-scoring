@@ -109,7 +109,6 @@ class topologicalCS():
         good_payers = within_window_data[within_window_data['label'] == 0]
         R = (good_payers['profit'] / (good_payers['loan_amnt'])).mean()
         print(f"The value of R: {R}")
-        R = 0.1523 # Mean of profitability of good payers within the period '2012-09' to '2014-05'
         self.data['sim_profit'] = np.where(self.data['label'] == 0, 1.0, -1.0 / R)
         self.data['sim_loan_amnt'] = 1.0
 

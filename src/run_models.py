@@ -65,7 +65,7 @@ class ModelTrainer:
         g.vs['orig_id'] = list(range(g.vcount()))
         
         logging.info("========================================")
-        logging.info("1. EXTRAÇÃO DE FEATURES: TREINO (ISOLADO)")
+        logging.info("1. EXTRAÇÃO DE FEATURES: TREINO")
         logging.info("========================================")
         
         # Subgrafo de treino
@@ -122,7 +122,7 @@ class ModelTrainer:
 
 
         logging.info("========================================")
-        logging.info("2. EXTRAÇÃO DE FEATURES: TESTE (INFERÊNCIA)")
+        logging.info("2. EXTRAÇÃO DE FEATURES: TESTE")
         logging.info("========================================")
         
         # Como os nós de teste estão no futuro, eles olham para trás (out-edges)
@@ -297,7 +297,7 @@ class ModelTrainer:
         Aplica a fórmula topológica para gerar um threshold personalizado por indivíduo.
         """
         delta_c = community_risks - global_risk
-        dynamic_t = base_t + (alpha * delta_c)
+        dynamic_t = base_t - (alpha * delta_c)
         
         # Garante que o threshold se mantenha em um intervalo válido [0.01, 0.99]
         return np.clip(dynamic_t, 0.01, 0.99)
@@ -352,7 +352,7 @@ class ModelTrainer:
         explainer = shap.LinearExplainer(model, masker=masker)
         
         # Calculamos o SHAP values sobre o teste
-        logging.info("Calculando o impacto real das features nas predições de TESTE...")
+        logging.info("Calculando o impacto real das features nas predições de teste...")
         shap_values = explainer.shap_values(X_test_dense)
         
         # Plota o summary plot

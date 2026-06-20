@@ -72,7 +72,7 @@ LAST_VALIDATION_DATE = pd.to_datetime('2013-09-01')
 FIRST_TEST_DATE = pd.to_datetime('2013-10-01')
 FINAL_DATE = pd.to_datetime('2014-03-01')
 
-class topologicalCS():
+class generateGraphs():
     def __init__(
             self, input_path: str = INPUT_PATH, models: list = MODELS, sample: bool = SAMPLE, term60: bool = TERM60,
             k: int = K_NEIGHBORS, metric: str = DISTANCE_METRIC
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     # Initialize the time counter
     start_time = time.time()
 
-    run = topologicalCS()
+    run = generateGraphs()
     run.main()
     
     # Finish the time counter

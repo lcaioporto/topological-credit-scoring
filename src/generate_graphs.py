@@ -5,7 +5,7 @@ from src.utils.utils import Utils
 from sklearn.linear_model import LogisticRegression
 import time
 import numpy as np
-from build_graph import FinancialGraphBuilder
+from knn_graph_builder import FinancialGraphBuilder
 
 # Include flags
 import argparse

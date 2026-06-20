@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def load_and_align_data(parquet_path: str):
     """
-    Carrega os dados e replica os filtros do topologicalCS.py 
+    Carrega os dados e replica os filtros do generate_graphs.py 
     para garantir que o índice do DataFrame se alinhe com os nós do Grafo.
     """
     logging.info("Carregando e alinhando dados originais...")

@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
 from sklearn.neighbors import kneighbors_graph
 import scipy.sparse as sparse
 import logging
@@ -132,7 +130,7 @@ if __name__ == "__main__":
     }
     df_filtered = pd.DataFrame(mock_data)
     
-    # Define the features selected in topologicalCS.py
+    # Define the features selected in generate_graphs.py
     selected_features = ['loan_amnt', 'int_rate', 'annual_inc', 'dti', 'revol_util']
     
     # Instantiate the builder

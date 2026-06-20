@@ -3,7 +3,6 @@ import sys
 sys.path.append('.')
 from src.utils.utils import Utils
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
 import time
 import numpy as np
 from build_graph import FinancialGraphBuilder

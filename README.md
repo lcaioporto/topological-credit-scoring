@@ -42,7 +42,7 @@ After configuring the repository environment, you can execute the experiment to 
 ```
 python src/generate_graphs.py --k 10 --metric euclidean
 ```
-Note that you can specify the value of $K$ and the metric used to calculate distances to build the graph. For instace, we tested with $K: \{5, 10, 20\}$ and $metric: \{euclidean, manhattan, cosine\}$.
+Note that you can specify the value of $K$ and the metric used to calculate distances to build the graph. For instance, we tested with $K: \{5, 10, 20\}$ and $metric: \{euclidean, manhattan, cosine\}$.
 
 **2. Evaluating and Selecting the Best Topology**
 

@@ -18,7 +18,7 @@ from scipy.sparse import issparse, hstack
 import sys
 sys.path.append('.')
 from src.utils.utils import Utils
-from generate_graphs import generateGraphs
+from generate_graphs import GenerateGraphs
 
 import shap
 import matplotlib.pyplot as plt
@@ -39,7 +39,7 @@ class ModelTrainer:
     def load_and_split_data(self):
         logging.info("Carregando e aplicando filtros iniciais do projeto...")
 
-        base_process = generateGraphs(input_path=self.parquet_path, sample=False)
+        base_process = GenerateGraphs(input_path=self.parquet_path, sample=False)
         base_process.presetting_data()
         self.df = base_process.data.copy().reset_index(drop=True)
         
@@ -166,7 +166,7 @@ class ModelTrainer:
     def run_ml_pipeline(self):
         logging.info("Iniciando treinamento dos modelos e cálculo de thresholds...")
         
-        dummy_run = generateGraphs(input_path=self.parquet_path, sample=False)
+        dummy_run = GenerateGraphs(input_path=self.parquet_path, sample=False)
         dummy_run.data = self.df
         numeric_features, ohe_cat_feats, te_cat_feats, binary_features = dummy_run.parsing_data()
         
